@@ -1,0 +1,25 @@
+# tasks file for ansible-role-cfn-elb
+- name: Create build directory
+  file:
+    dest: build
+    state: directory
+
+- name: Template role
+  template:
+    src: elb.json.j2
+    dest: "build/{{elb_role_stack_name}}.json"
+
+- name: Create or remove role stack
+  cloudformation:
+    template_parameters:
+      VPC: "{{ elb_vpc|default(omit) }}"
+      SubnetIDs: "{{ elb_subnets|default(omit) }}"
+    template: "build/{{elb_role_stack_name}}.json"
+    stack_name: "{{ elb_role_stack_name }}"
+    state: "{{ elb_role_stack_state|default('present') }}"
+    region: "{{ region|default('us-west-2') }}"
+    security_token: "{{ lookup('env','AWS_SESSION_TOKEN')|default(omit, true) }}"
+    tags: "{{ elb_tags }}"
+  register: elb_cf_output
+
+- debug: msg="{{ elb_cf_output }}" verbosity=1
